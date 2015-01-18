@@ -201,30 +201,140 @@ hr {
 </head>
 
 <body>
+<pre><code class="r">library(&quot;knitr&quot;)
+opts_chunk$set(echo=TRUE)
+opts_chunk$set(&quot;base64_images&quot;, &quot;No&quot;)
+</code></pre>
+
 <h2>Loading and preprocessing the data</h2>
 
-<pre><code class="r">library(&quot;data.table&quot;)
-</code></pre>
-
-<pre><code>## data.table 1.9.4  For help type: ?data.table
-## *** NB: by=.EACHI is now explicit. See README to restore previous behaviour.
-</code></pre>
-
-<pre><code class="r">library(&quot;ggplot2&quot;)
-rawData = read.csv(file=&quot;activity.csv&quot;,header=TRUE,sep=&quot;,&quot;,na.strings=&quot;NA&quot;)
-stepsSum &lt;- as.data.frame(cbind(by(rawData,rawData$date,function(df) sum(df$steps,na.rm=TRUE))))
-stepsSum$date &lt;- rownames(stepsSum)
-rownames(stepsSum) &lt;- NULL
-colnames(stepsSum) &lt;- c(&quot;Steps&quot;,&quot;Date&quot;)
+<pre><code class="r">RawData &lt;- read.csv(&quot;activity.csv&quot;)
+RawData$date &lt;- as.Date(RawData$date)
+StepsSums &lt;- aggregate(
+  RawData$steps ~ RawData$date,
+  FUN = sum,
+  na.rm=T)
+names(StepsSums) &lt;- c(&#39;Date&#39;,&#39;Steps&#39;)
 </code></pre>
 
 <h2>What is mean total number of steps taken per day?</h2>
 
+<h3>1. Plotting the Number of Steps Each Day</h3>
+
+<pre><code class="r">hist(StepsSums$Steps,main = &quot;Histogram of The Total Number of Steps&quot;,xlab = &quot;Steps&quot;)
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-2-1.png" alt="plot of chunk unnamed-chunk-2"/> </p>
+
+<h3>2. Computing the Mean and Median</h3>
+
+<pre><code class="r">stepsMean &lt;- mean(StepsSums$Steps)
+stepsMedian &lt;- median(StepsSums$Steps)
+</code></pre>
+
+<h4>Mean is <em>10766.19</em></h4>
+
+<h4>Median is <em>10765</em></h4>
+
 <h2>What is the average daily activity pattern?</h2>
+
+<h3>1. Time Series Plot</h3>
+
+<pre><code class="r">stepsAvgPerInterval &lt;- aggregate(
+  RawData$steps ~ RawData$interval,
+  FUN = mean,
+  na.rm=T)
+names(stepsAvgPerInterval) &lt;- c(&#39;Intervals&#39;,&#39;Averages&#39;)
+
+plot(x = stepsAvgPerInterval$Intervals,
+     y = stepsAvgPerInterval$Averages, 
+     type=&quot;l&quot;, 
+     xlab = &quot;5-Minute Interval&quot;, 
+     ylab = &quot;Average Steps Cross All Days&quot;)
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4"/> </p>
+
+<pre><code class="r">IntervalWithMaxNumberOfSteps &lt;- stepsAvgPerInterval[
+  stepsAvgPerInterval$Averages == max(stepsAvgPerInterval$Averages),1]
+</code></pre>
+
+<h3>2. The 5-Minute interval with the maximum number of steps across all days is: <em>835</em></h3>
 
 <h2>Imputing missing values</h2>
 
+<pre><code class="r">#Calculating the missing values
+valuesWithNACount &lt;- nrow(RawData[is.na(RawData$steps) == T,])
+</code></pre>
+
+<h3>1. The total number of missing values is: <em>2304</em></h3>
+
+<h3>2. Cleaning The Data</h3>
+
+<pre><code class="r">#Cleaning The Data using the Computed average before in stepsAvgPerInterval and storing it in CleanData
+CleanData &lt;- RawData
+CleanData$steps &lt;- cbind(apply(CleanData,1,
+                               function(x) { 
+                                 if(is.na(x[[1]])) 
+                                   stepsAvgPerInterval[stepsAvgPerInterval$Intervals == as.numeric(x[[3]]),2]
+                                 else 
+                                   as.numeric(x[[1]]) })
+                         )
+</code></pre>
+
+<h3>3. Plotting the Number of Steps Each Day (Cleaned Data)</h3>
+
+<pre><code class="r">StepsSumsCD &lt;- aggregate(
+  CleanData$steps ~ CleanData$date,
+  FUN = sum,
+  na.rm=T)
+names(StepsSumsCD) &lt;- c(&#39;Date&#39;,&#39;Steps&#39;)
+
+cleanStepsMean &lt;- mean(StepsSumsCD$Steps)
+cleanStepsMedian &lt;- median(StepsSumsCD$Steps)
+
+hist(StepsSumsCD$Steps)
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-7-1.png" alt="plot of chunk unnamed-chunk-7"/> </p>
+
+<h4>Clean Data Mean is <em>10766.19</em></h4>
+
+<h4>Clean Data Median is <em>10766.19</em></h4>
+
 <h2>Are there differences in activity patterns between weekdays and weekends?</h2>
+
+<h3>There is a small diffrence in Median only</h3>
+
+<h2>Plotting the Panel Plot</h2>
+
+<pre><code class="r">stepsAvgPerIntervalCD &lt;- aggregate(
+  CleanData$steps ~ CleanData$interval,
+  FUN = mean,
+  na.rm=T)
+names(stepsAvgPerIntervalCD) &lt;- c(&#39;Intervals&#39;,&#39;Averages&#39;)
+
+CleanData$Weekday &lt;- factor(weekdays(as.POSIXct(CleanData$date)))
+CleanData$day_type &lt;- factor(cbind(apply(CleanData,1,
+                                         function(x) { 
+                                           wd &lt;- weekdays(as.POSIXct(x[[2]])); 
+                                           if(wd == &#39;Saturday&#39; || wd == &#39;Sunday&#39;) &#39;weekend&#39; else &#39;weekday&#39; 
+                                           }
+                                         )
+                                   )
+                             )
+library(&quot;lattice&quot;)
+avgWeekSteps &lt;- aggregate(steps ~ interval + day_type , data = CleanData, mean) 
+colnames(avgWeekSteps) &lt;- c(&quot;Interval&quot;,&quot;DayType&quot;,&quot;AverageSteps&quot;)
+timeseries &lt;- xyplot(AverageSteps ~ Interval | DayType, 
+                     data = avgWeekSteps, type = &quot;l&quot;,
+                     layout = c(1,2),xlab=&quot;Intervals&quot;,
+                     ylab=&quot;Average Number of Steps&quot;,
+                     main = &quot;Average Number of Steps for Weekends and Weekdays&quot;)
+print(timeseries)
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-8-1.png" alt="plot of chunk unnamed-chunk-8"/> </p>
 
 </body>
 
