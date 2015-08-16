@@ -1,9 +1,4 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Peer Assessment 1
 
 ```r
 library("knitr")
@@ -30,7 +25,8 @@ names(StepsSums) <- c('Date','Steps')
 hist(StepsSums$Steps,main = "Histogram of The Total Number of Steps",xlab = "Steps")
 ```
 
-![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-2-1.png) 
+![](PA1_template_files/figure-html/unnamed-chunk-2-1.png) 
+
 ### 2. Computing the Mean and Median
 
 ```r
@@ -58,7 +54,7 @@ plot(x = stepsAvgPerInterval$Intervals,
      ylab = "Average Steps Cross All Days")
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4-1.png) 
+![](PA1_template_files/figure-html/unnamed-chunk-4-1.png) 
 
 ```r
 IntervalWithMaxNumberOfSteps <- stepsAvgPerInterval[
@@ -74,10 +70,11 @@ valuesWithNACount <- nrow(RawData[is.na(RawData$steps) == T,])
 ```
 ### 1. The total number of missing values is: *2304*
 
-### 2. Cleaning The Data 
+### 2. Next we will clean The Data using the Computed average before in stepsAvgPerInterval and storing it in CleanData
+
+### 3. Creating the new dataset using the above strategy
 
 ```r
-#Cleaning The Data using the Computed average before in stepsAvgPerInterval and storing it in CleanData
 CleanData <- RawData
 CleanData$steps <- cbind(apply(CleanData,1,
                                function(x) { 
@@ -87,7 +84,8 @@ CleanData$steps <- cbind(apply(CleanData,1,
                                    as.numeric(x[[1]]) })
                          )
 ```
-### 3. Plotting the Number of Steps Each Day (Cleaned Data)
+
+### 4. Plotting the Number of Steps Each Day (Cleaned Data)
 
 ```r
 StepsSumsCD <- aggregate(
@@ -99,17 +97,17 @@ names(StepsSumsCD) <- c('Date','Steps')
 cleanStepsMean <- mean(StepsSumsCD$Steps)
 cleanStepsMedian <- median(StepsSumsCD$Steps)
 
-hist(StepsSumsCD$Steps)
+hist(StepsSumsCD$Steps,xlab = "Steps",main="")
 ```
 
-![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7-1.png) 
+![](PA1_template_files/figure-html/unnamed-chunk-7-1.png) 
+
 #### Clean Data Mean is *10766.19*  
 #### Clean Data Median is *10766.19*
 
 ## Are there differences in activity patterns between weekdays and weekends?
-### There is a small diffrence in Median only
 
-## Plotting the Panel Plot
+### 1. Create a new factor variable in the dataset with two levels -- "weekday" and "weekend"
 
 ```r
 stepsAvgPerIntervalCD <- aggregate(
@@ -127,6 +125,11 @@ CleanData$day_type <- factor(cbind(apply(CleanData,1,
                                          )
                                    )
                              )
+```
+
+### 2. Plotting the Panel Plot
+
+```r
 library("lattice")
 avgWeekSteps <- aggregate(steps ~ interval + day_type , data = CleanData, mean) 
 colnames(avgWeekSteps) <- c("Interval","DayType","AverageSteps")
@@ -138,4 +141,4 @@ timeseries <- xyplot(AverageSteps ~ Interval | DayType,
 print(timeseries)
 ```
 
-![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8-1.png) 
+![](PA1_template_files/figure-html/unnamed-chunk-9-1.png) 
